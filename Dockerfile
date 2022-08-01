@@ -14,5 +14,7 @@ ADD  target/demo-0.0.1-SNAPSHOT.jar ./app.jar
 
 ENTRYPOINT ["nohup","java","-jar","./app.jar","&"]
 
+EXPOSE 8080
+
 # docker build -t demo .
 # docker run -d -p 8080:8080 --name my_demo_03 sbdemo:latest

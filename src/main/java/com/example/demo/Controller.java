@@ -1,37 +1,21 @@
 package com.example.demo;
-
-import com.google.common.util.concurrent.RateLimiter;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import com.example.demo.Strategy.Strategy;
+import com.example.demo.MsgSender.Msg;
+import com.example.demo.MsgSender.Sender;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
 
-import java.util.concurrent.TimeUnit;
-
-
-@RequestMapping("/json")
 @RestController
 public class Controller {
+	private final Sender msg_sender;
 
-	//设置每秒100次最大访问限制
-	private final RateLimiter limiter = RateLimiter.create(100.0);
-
-	@RequestMapping("/getMsg")
-	@ResponseBody
-	public Msg getMsg() {
-		//500毫秒内，没拿到令牌，就直接进入服务降级
-		boolean tryAcquire = limiter.tryAcquire(1000, TimeUnit.MILLISECONDS);
-		Msg msg = new Msg();
-
-		if (!tryAcquire)  msg.setMsg("当前访问数过多，获取令牌失败!");
-		else msg.setMsg("获取令牌成功!");
-
-		return msg;
+	public Controller(Sender msg_sender) {
+		this.msg_sender = msg_sender;
 	}
 
-	@RequestMapping("/hello")
-	public String hello() {
-		return "Hello!";
+	@GetMapping("/getMsg")
+	@Strategy(token_num = 100, strategy_name = "limiting")
+	public Msg hello() {
+		return msg_sender.getMsg();
 	}
-
 }
-
