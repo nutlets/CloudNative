@@ -19,5 +19,5 @@ spec:
         app: cloud-native
     spec:
       containers:
-        - image: cloud-native-demo:${BUILD_ID}
+        - image: cloud-native-demo
           name: cloud-native
