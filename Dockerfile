@@ -10,7 +10,7 @@ MAINTAINER Giesen
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo "Asia/Shanghai" > /etc/timezone
 
-ADD  target/demo-0.0.1-SNAPSHOT.jar /app.jar
+ADD  target/demo-0.0.1-SNAPSHOT.jar /nju17-app.jar
 
 # 运行jar包
 
