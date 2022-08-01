@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-native
+  namespace: nju17
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 30%
+      maxUnavailable: 30%
+  selector:
+    matchLabels:
+      app: cloud-native
+  template:
+    metadata:
+      labels:
+        app: cloud-native
+    spec:
+      containers:
+        - image: cloud-native-demo
+          name: cloud-native
