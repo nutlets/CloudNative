@@ -1,3 +1,4 @@
+#编排文件1：Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,6 +30,7 @@ spec:
 
 ---
 
+#编排文件2：Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -50,6 +52,7 @@ spec:
 
 ---
 
+#编排文件3：Monitor，实现普罗米修斯功能注册
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -57,7 +60,7 @@ metadata:
     namespace: nju17
 spec:
     endpoints:
-        - interval: 10s
+        - interval: 15s
           path: /actuator/prometheus
           port: cloud-native-service-port
     namespaceSelector:

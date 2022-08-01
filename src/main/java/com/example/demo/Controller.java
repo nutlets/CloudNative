@@ -15,6 +15,7 @@ public class Controller {
 
 	@GetMapping("/getMsg")
 	@Strategy(token_num = 100, strategy_name = "limiting")
+	//设置每秒100个令牌的发放限制
 	public Msg hello() {
 		return msg_sender.getMsg();
 	}
