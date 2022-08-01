@@ -8,11 +8,11 @@ MAINTAINER Giesen
 
 # 将jar包添加到容器中并更名为app.jar
 
-ADD  target/demo-0.0.1-SNAPSHOT.jar ./app/app.jar
+ADD  target/demo-0.0.1-SNAPSHOT.jar ./app.jar
 
 # 运行jar包
 
-ENTRYPOINT ["nohup","java","-jar","./app/app.jar","&"]
+ENTRYPOINT ["nohup","java","-jar","./app.jar","&"]
 
 # docker build -t demo .
 # docker run -d -p 8080:8080 --name my_demo_03 sbdemo:latest
