@@ -5,7 +5,7 @@ metadata:
     name: cloud-native
     namespace: nju17
 spec:
-    replicas: 3
+    replicas: 1
     strategy:
         type: RollingUpdate
         rollingUpdate:
@@ -20,13 +20,13 @@ spec:
                 app: cloud-native
         spec:
             containers:
-                - image: harbor.edu.cn/nju17/cloud-native-demo:{VERSION}
-                  name: cloud-native
-                  ports:
-                      - containerPort: 8080
-                  resources:
-                      requests:
-                          cpu: 400m
+                -   image: harbor.edu.cn/nju17/cloud-native-demo:{VERSION}
+                    name: cloud-native
+                    ports:
+                        -   containerPort: 8080
+                    resources:
+                        requests:
+                            cpu: 400m
 
 ---
 
@@ -34,19 +34,19 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-    name: cloud-native-service
+    name: cloud-native
     namespace: nju17
     labels:
-        app: cloud-native-service
+        app: cloud-native
         micrometer-prometheus-discovery: 'true'
 spec:
     type: NodePort
     ports:
-        - port: 8080
-          targetPort: 8080
-          nodePort: 30880
-          name: cloud-native-service-port
-          protocol: TCP
+        -   port: 8080
+            targetPort: 8080
+            nodePort: 30880
+            name: cloud-native-service-port
+            protocol: TCP
     selector:
         app: cloud-native
 
@@ -60,9 +60,9 @@ metadata:
     namespace: nju17
 spec:
     endpoints:
-        - interval: 15s
-          path: /actuator/prometheus
-          port: cloud-native-service-port
+        -   interval: 15s
+            path: /actuator/prometheus
+            port: cloud-native-service-port
     namespaceSelector:
         any: true
     selector:
