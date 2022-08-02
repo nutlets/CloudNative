@@ -14,10 +14,10 @@
 
 本小组为第17组，成员为以下2人：
 
-| 姓名   | 学号      | 联系方式（QQ） |
-| ------ | --------- | -------------- |
-| 罗瑞航 |           |                |
-| 尹麒深 | 201250139 | 876865565      |
+| 姓名   | 学号         | 联系方式（QQ）   |
+| ------ |------------|------------|
+| 罗瑞航 | 201250117  | 2606286483 |
+| 尹麒深 | 201250139  | 876865565  |
 
 
 
@@ -414,6 +414,258 @@ spec:
 ![image-20220802175254048](.\README.assets\image-20220802175254048.png)
 
 ### 3.4 Rolling Update CRD和Controller实现
+
+####3.4.1 CRD项目地址：https://github.com/nutlets/RollingCrd
+####3.4.2 目录结构如下：
+![image-20220802210018](.\README.assets\image-20220802210018.png)
+####3.4.3 关键代码如下：
+比较关键的yaml文件：
+
+在demo.roll.io_rollingupdatecrds.yaml中：
+```yaml
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.0
+  creationTimestamp: null
+  name: rollingupdatecrds.demo.roll.io
+spec:
+  group: demo.roll.io
+  names:
+    kind: RollingUpdateCrd
+    listKind: RollingUpdateCrdList
+    plural: rollingupdatecrds
+    singular: rollingupdatecrd
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: RollingUpdateCrd is the Schema for the rollingupdatecrds API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RollingUpdateCrdSpec defines the desired state of RollingUpdateCrd
+            properties:
+              deploymentName:
+                description: Foo is an example field of RollingUpdateCrd. Edit rollingupdatecrd_types.go
+                  to remove/update
+                type: string
+            type: object
+          status:
+            description: RollingUpdateCrdStatus defines the observed state of RollingUpdateCrd
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+
+```
+在demo_v1_rollingupdatecrd.yaml中：
+```yaml
+apiVersion: demo.roll.io/v1
+kind: RollingUpdateCrd
+metadata:
+  name: rolling-update-crd
+  namespace: nju17
+spec:
+  deploymentName: cloud-native
+  # TODO(user): Add fields here
+
+```
+
+比较关键的实现代码块：
+
+在rollingupdatecrd_types.go中：
+```go
+type RollingUpdateCrdSpec struct {
+	DeploymentName string `json:"deploymentName,omitempty"`
+}
+type RollingUpdateCrdStatus struct {
+}
+
+```
+在rollingupdatecrd_controller.go中：
+```go
+func (r *RollingUpdateCrdReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	// TODO(user): your logic here
+	logger.Info("start reconcile")
+	rollingUpdateCrd := &demov1.RollingUpdateCrd{}
+
+	key := client.ObjectKey{Namespace: req.Namespace, Name: req.Name}
+	if err := r.Get(ctx, key, rollingUpdateCrd); err != nil {
+		logger.Error(err, "get target obj failed")
+		return ctrl.Result{}, err
+	}
+
+	if rollingUpdateCrd.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(rollingUpdateCrd, MonitorFinalizer) {
+			controllerutil.AddFinalizer(rollingUpdateCrd, MonitorFinalizer)
+			if err := r.Update(ctx, rollingUpdateCrd); err != nil {
+				logger.Error(err, "add MonitorFinalizer failed")
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		if controllerutil.ContainsFinalizer(rollingUpdateCrd, MonitorFinalizer) {
+			monitor.RemoveMonitoredDeploy(rollingUpdateCrd.Namespace, rollingUpdateCrd.Spec.DeploymentName)
+			controllerutil.RemoveFinalizer(rollingUpdateCrd, MonitorFinalizer)
+			if err := r.Update(ctx, rollingUpdateCrd); err != nil {
+				logger.Error(err, "remove MonitorFinalizer failed")
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+
+	monitor.AddMonitorDeploy(rollingUpdateCrd.Namespace, rollingUpdateCrd.Spec.DeploymentName)
+
+	return ctrl.Result{}, nil
+}
+```
+在event_handler中：
+```go
+type RSEventHandler struct{}
+
+func (h RSEventHandler) OnAdd(obj interface{}) {
+	rs := obj.(*appsv1.ReplicaSet)
+	for _, v := range rs.OwnerReferences {
+		if v.Kind != "Deployment" {
+			klog.Warningf("unexpected type %s", v.Kind)
+			continue
+		}
+		if CheckMonitored(rs.Namespace, v.Name) {
+			klog.Info("Add: ")
+			printReplicaInfo(rs)
+			return
+		}
+	}
+}
+
+func (h RSEventHandler) OnUpdate(oldObj, newObj interface{}) {
+	rs1 := oldObj.(*appsv1.ReplicaSet)
+	rs := newObj.(*appsv1.ReplicaSet)
+	for _, v := range rs.OwnerReferences {
+		if v.Kind != "Deployment" {
+			klog.Warningf("unexpected type %s", v.Kind)
+			continue
+		}
+		if CheckMonitored(rs.Namespace, v.Name) {
+			klog.Info("Update: ")
+			printReplicaInfo1(rs, rs1)
+			return
+		}
+	}
+}
+func printReplicaInfo1(rs *appsv1.ReplicaSet, rs1 *appsv1.ReplicaSet) {
+
+	klog.Infof("oldInfo %s/%s rs info: expected replica %d, current replica %d, ready replica %d %n", rs1.Namespace, rs1.Name, *rs1.Spec.Replicas, rs1.Status.Replicas, rs1.Status.ReadyReplicas)
+
+	klog.Infof("newInfo %s/%s rs info: expected replica %d, current replica %d, ready replica %d", rs.Namespace, rs.Name, *rs.Spec.Replicas, rs.Status.Replicas, rs.Status.ReadyReplicas)
+}
+func printReplicaInfo(rs *appsv1.ReplicaSet) {
+
+	klog.Infof("%s/%s rs info: expected replica %d, current replica %d, ready replica %d", rs.Namespace, rs.Name, *rs.Spec.Replicas, rs.Status.Replicas, rs.Status.ReadyReplicas)
+}
+
+func (h RSEventHandler) OnDelete(obj interface{}) {
+	rs := obj.(*appsv1.ReplicaSet)
+	for _, v := range rs.OwnerReferences {
+		if v.Kind != "Deployment" {
+			klog.Warningf("unexpected type %s", v.Kind)
+			continue
+		}
+		if CheckMonitored(rs.Namespace, v.Name) {
+			klog.Info("Delete: ")
+			printReplicaInfo(rs)
+			return
+		}
+	}
+}
+```
+功能的说明：
+
+**这里我们实现了当被监控的deployment资源添加、更新、删除时，打印它的Namespace\Name\Spec.Replicas\Status.Replicas\Status.ReadyReplicas，从而实现对此滚动升级的监控。**
+
+
+####3.4.4 CRD项目的Jenkins部署
+此项目的jenkinsfile：
+```yaml
+node('slave') {
+    container('jnlp-kubectl') {
+
+            stage('Clone Stage') {
+                sh 'curl "http://p.nju.edu.cn/portal_io/login" --data "username=201250117&password=hanghang5214.." '
+                git branch: 'master', url: "https://github.com/nutlets/RollingCrd.git"
+            }
+            stage('Install Stage') {
+                echo 'Install make'
+                sh '''
+                yum -y install make
+                make -v
+               '''
+               echo 'install golang'
+                sh '''
+                yum install -y epel-release
+                yum -y install golang
+                go version
+                echo $GOPATH
+                '''
+            }
+
+            stage('Image Build Stage') {
+                sh 'docker build -f Dockerfile -t rollingupdatecrd:${BUILD_ID} .'
+                sh 'docker tag rollingupdatecrd:${BUILD_ID} harbor.edu.cn/nju17/rollingupdatecrd:${BUILD_ID}'
+                sh 'docker login harbor.edu.cn -u nju17 -p nju172022'
+                sh 'docker push harbor.edu.cn/nju17/rollingupdatecrd:${BUILD_ID}'
+            }
+
+            stage('Make Install And Deploy Stage'){
+
+
+                sh 'go env -w GO111MODULE=auto'
+                sh 'go env -w GOPROXY=https://goproxy.cn'
+                sh 'chmod +x bin/controller-gen'
+                sh 'chmod +x bin/kustomize'
+                // sh 'make install'
+                sh 'make manifests'
+                sh 'bin/kustomize build config/crd | kubectl apply -f -'
+
+                sh 'make manifests'
+                sh 'cd config/manager && ls && ./../../bin/kustomize edit set image controller=harbor.nju.edu.cn/nju17/rollingupdatecrd:${BUILD_ID}'
+                sh 'ls'
+                sh 'bin/kustomize build config/default | kubectl apply -f -'
+
+                sh 'kubectl apply -f config/samples/demo_v1_rollingupdatecrd.yaml -n nju17'
+            }
+
+
+    }
+}
+```
+jenkins上部署成功的截图：
+![image-20220802211058](./README.assets/image-20220802211058.png)
+####3.4.5k8s集群上的表现：
+1.我们所创建的CRD名称为RollingUpdateCrd，我们获取一下它。
+![image-20220802213226](./README.assets/image-20220802213226.png)
+可以看到我们确实成功创建了它。
+
 
 ### 3.5 自动扩容
 
