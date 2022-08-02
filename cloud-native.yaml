@@ -44,7 +44,7 @@ spec:
     ports:
         - port: 8080
           targetPort: 8080
-          nodePort: 30876
+          nodePort: 30880
           name: cloud-native-service-port
           protocol: TCP
     selector:
