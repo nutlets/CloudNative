@@ -30,7 +30,7 @@ pipeline {
             steps {
                 echo "3.Image Build Stage!!!"
                 sh 'docker build -f Dockerfile --build-arg jar_name=target/demo-0.0.1-SNAPSHOT.jar -t cloud-native-demo:${BUILD_ID} . '
-                echo 'Building Succsess!'
+                echo 'Building Success!'
                 sh 'docker tag cloud-native-demo:${BUILD_ID} harbor.edu.cn/nju17/cloud-native-demo:${BUILD_ID}'
                 echo 'Push Success!'
             }
@@ -56,9 +56,9 @@ node('slave') {
             //git url: "https://github.com/nutlets/CloudNative.git"
         }
         stage('YAML') {
-                echo "6. Change YAML File Stage"
-                sh 'sed -i "s#{VERSION}#${BUILD_ID}#g" cloud-native.yaml'
-            }
+            echo "6. Change YAML File Stage"
+            sh 'sed -i "s#{VERSION}#${BUILD_ID}#g" cloud-native.yaml'
+        }
         stage('Deploy') {
             echo "7. Deploy To K8s Stage"
             sh 'kubectl apply -f cloud-native.yaml'

@@ -4,13 +4,15 @@ kind: Deployment
 metadata:
     name: cloud-native
     namespace: nju17
+    labels:
+        app: cloud-native
 spec:
     replicas: 3
-    strategy:
-        type: RollingUpdate
-        rollingUpdate:
-            maxSurge: 30%
-            maxUnavailable: 30%
+#    strategy:
+#        type: RollingUpdate
+#        rollingUpdate:
+#            maxSurge: 30%
+#            maxUnavailable: 30%
     selector:
         matchLabels:
             app: cloud-native
@@ -20,13 +22,13 @@ spec:
                 app: cloud-native
         spec:
             containers:
-                - image: harbor.edu.cn/nju17/cloud-native-demo:{VERSION}
-                  name: cloud-native
-                  ports:
-                      - containerPort: 8080
-                  resources:
-                      requests:
-                          cpu: 400m
+                -   image: harbor.edu.cn/nju17/cloud-native-demo:{VERSION}
+                    name: cloud-native
+                    ports:
+                        -   containerPort: 8080
+                    resources:
+                        requests:
+                            cpu: 400m
 
 ---
 
@@ -42,11 +44,11 @@ metadata:
 spec:
     type: NodePort
     ports:
-        - port: 8080
-          targetPort: 8080
-          nodePort: 30880
-          name: cloud-native-service-port
-          protocol: TCP
+        -   port: 8080
+            targetPort: 8080
+            nodePort: 30880
+            name: cloud-native-service-port
+            protocol: TCP
     selector:
         app: cloud-native
 
@@ -60,9 +62,9 @@ metadata:
     namespace: nju17
 spec:
     endpoints:
-        - interval: 15s
-          path: /actuator/prometheus
-          port: cloud-native-service-port
+        -   interval: 15s
+            path: /actuator/prometheus
+            port: cloud-native-service-port
     namespaceSelector:
         any: true
     selector:
