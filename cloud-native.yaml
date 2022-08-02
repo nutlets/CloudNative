@@ -4,13 +4,15 @@ kind: Deployment
 metadata:
     name: cloud-native
     namespace: nju17
+    labels:
+        app: cloud-native
 spec:
     replicas: 3
-    strategy:
-        type: RollingUpdate
-        rollingUpdate:
-            maxSurge: 30%
-            maxUnavailable: 30%
+#    strategy:
+#        type: RollingUpdate
+#        rollingUpdate:
+#            maxSurge: 30%
+#            maxUnavailable: 30%
     selector:
         matchLabels:
             app: cloud-native
