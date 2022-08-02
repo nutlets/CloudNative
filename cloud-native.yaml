@@ -7,12 +7,12 @@ metadata:
     labels:
         app: cloud-native
 spec:
-    replicas: 3
-#    strategy:
-#        type: RollingUpdate
-#        rollingUpdate:
-#            maxSurge: 30%
-#            maxUnavailable: 30%
+    replicas: 10
+    strategy:
+        type: RollingUpdate
+        rollingUpdate:
+            maxSurge: 30%
+            maxUnavailable: 30%
     selector:
         matchLabels:
             app: cloud-native
