@@ -8,7 +8,7 @@ MAINTAINER Giesen
 
 # 将jar包添加到容器中并更名为app.jar
 
-ADD  target/demo-0.0.1-SNAPSHOT.jar ./app.jar
+ADD  target/demo-0.0.1-SNAPSHOT.jar ./cloud-native-demo.jar
 
 # 运行jar包
 
