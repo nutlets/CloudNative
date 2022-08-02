@@ -5,7 +5,7 @@ metadata:
     name: cloud-native
     namespace: nju17
 spec:
-    replicas: 1
+    replicas: 3
     strategy:
         type: RollingUpdate
         rollingUpdate:
@@ -34,10 +34,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-    name: cloud-native
+    name: cloud-native-service
     namespace: nju17
     labels:
-        app: cloud-native
+        app: cloud-native-service
         micrometer-prometheus-discovery: 'true'
 spec:
     type: NodePort
