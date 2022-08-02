@@ -20,7 +20,7 @@ spec:
                 app: cloud-native
         spec:
             containers:
-                - image: harbor.edu.cn/nju17/cloud-native-demo
+                - image: harbor.edu.cn/nju17/cloud-native-demo${BUILD_ID}
                   name: cloud-native
                   ports:
                       -   containerPort: 8080
